@@ -3,10 +3,12 @@
 #include "IrpProxy.h"
 
 PDRIVER_OBJECT targetDriver;
+PDRIVER_DISPATCH savedMajorFunction[IRP_MJ_MAXIMUM_FUNCTION + 1];
 
 void IrpProxyUnload(PDRIVER_OBJECT);
 NTSTATUS IrpProxyCreateClose(PDEVICE_OBJECT, PIRP);
 NTSTATUS IrpProxyDeviceControl(PDEVICE_OBJECT, PIRP);
+NTSTATUS DispatchProxy(PDEVICE_OBJECT, PIRP);
 
 extern "C"
 NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath) {
@@ -69,7 +71,7 @@ NTSTATUS IrpProxyDeviceControl(PDEVICE_OBJECT DeviceObject, PIRP Irp) {
 	auto status = STATUS_SUCCESS;
 
 	switch (stack->Parameters.DeviceIoControl.IoControlCode) {
-	case IOCTL_SELECT_TARGET: {
+	case IOCTL_HOOK_TARGET: {
 		/* Receive a driver name as an input buffer. 
 		Hook the corresponding driver. */
 
@@ -95,9 +97,28 @@ NTSTATUS IrpProxyDeviceControl(PDEVICE_OBJECT DeviceObject, PIRP Irp) {
 			nullptr, 0, *IoDriverObjectType, KernelMode,
 			nullptr, (PVOID*)&targetDriver);
 
+		if (!NT_SUCCESS(status)) {
+			KdPrint(("Failed to obtain driver reference from name.\n"));
+			break;
+		}
 
+		for (int j = 0; j <= IRP_MJ_MAXIMUM_FUNCTION; j++) {
+			savedMajorFunction[j] = (PDRIVER_DISPATCH) InterlockedExchangePointer(
+				(PVOID*)&targetDriver->MajorFunction[j], DispatchProxy);
 
+		}
 
+		ObDereferenceObject(targetDriver);
+
+		break;
+	}
+
+	case IOCTL_UNHOOK_TARGET: {
+		if (targetDriver != nullptr) {
+			KdPrint(("No hooked target to unhook!"));
+			status = STATUS_INVALID_PARAMETER;
+		}
+		
 		break;
 	}
 	default: {
@@ -114,7 +135,7 @@ NTSTATUS IrpProxyDeviceControl(PDEVICE_OBJECT DeviceObject, PIRP Irp) {
 }
 
 /* This function will replace the target driver's handlers when hooking */
-NTSTATUS DispatchProxyHandler(PDEVICE_OBJECT DeviceObject, PIRP Irp) {
+NTSTATUS DispatchProxy(PDEVICE_OBJECT DeviceObject, PIRP Irp) {
 
 	UNREFERENCED_PARAMETER(Irp);
 	UNREFERENCED_PARAMETER(DeviceObject);
