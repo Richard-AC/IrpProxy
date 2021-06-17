@@ -5,6 +5,8 @@ VisualStudioVersion = 16.0.31402.337
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "IrpProxy", "IrpProxy\IrpProxy.vcxproj", "{4D626039-0909-4CA7-9A65-4DAB862A0E2F}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "IrpProxyClient", "IrpProxyClient\IrpProxyClient.vcxproj", "{8AAF084B-5CAF-471C-8E08-96742B7C9815}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM = Debug|ARM
@@ -41,6 +43,18 @@ Global
 		{4D626039-0909-4CA7-9A65-4DAB862A0E2F}.Release|x86.ActiveCfg = Release|Win32
 		{4D626039-0909-4CA7-9A65-4DAB862A0E2F}.Release|x86.Build.0 = Release|Win32
 		{4D626039-0909-4CA7-9A65-4DAB862A0E2F}.Release|x86.Deploy.0 = Release|Win32
+		{8AAF084B-5CAF-471C-8E08-96742B7C9815}.Debug|ARM.ActiveCfg = Debug|Win32
+		{8AAF084B-5CAF-471C-8E08-96742B7C9815}.Debug|ARM64.ActiveCfg = Debug|Win32
+		{8AAF084B-5CAF-471C-8E08-96742B7C9815}.Debug|x64.ActiveCfg = Debug|x64
+		{8AAF084B-5CAF-471C-8E08-96742B7C9815}.Debug|x64.Build.0 = Debug|x64
+		{8AAF084B-5CAF-471C-8E08-96742B7C9815}.Debug|x86.ActiveCfg = Debug|Win32
+		{8AAF084B-5CAF-471C-8E08-96742B7C9815}.Debug|x86.Build.0 = Debug|Win32
+		{8AAF084B-5CAF-471C-8E08-96742B7C9815}.Release|ARM.ActiveCfg = Release|Win32
+		{8AAF084B-5CAF-471C-8E08-96742B7C9815}.Release|ARM64.ActiveCfg = Release|Win32
+		{8AAF084B-5CAF-471C-8E08-96742B7C9815}.Release|x64.ActiveCfg = Release|x64
+		{8AAF084B-5CAF-471C-8E08-96742B7C9815}.Release|x64.Build.0 = Release|x64
+		{8AAF084B-5CAF-471C-8E08-96742B7C9815}.Release|x86.ActiveCfg = Release|Win32
+		{8AAF084B-5CAF-471C-8E08-96742B7C9815}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

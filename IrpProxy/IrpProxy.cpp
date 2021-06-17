@@ -78,27 +78,30 @@ NTSTATUS IrpProxyDeviceControl(PDEVICE_OBJECT DeviceObject, PIRP Irp) {
 		if (targetDriver) {
 			KdPrint(("Target driver already selected!\n"));
 			status = STATUS_INVALID_PARAMETER;
+			break;
 		}
 		if (stack->Parameters.DeviceIoControl.InputBufferLength <= 0) {
 			status = STATUS_BUFFER_TOO_SMALL;
 			break;
 		}
 
-		auto driverName = (PUNICODE_STRING)stack->Parameters.DeviceIoControl.Type3InputBuffer;
+		auto driverName = (PCWSTR)stack->Parameters.DeviceIoControl.Type3InputBuffer;
 
 		if (driverName == nullptr) {
 			status = STATUS_INVALID_PARAMETER;
 			break;
 		}
 
-		KdPrint(("Attempting to hook : %wZ\n", driverName));
+		KdPrint(("Attempting to hook : %ws\n", driverName));
 
-		status = ObReferenceObjectByName(driverName, OBJ_CASE_INSENSITIVE,
+		UNICODE_STRING name;
+		RtlInitUnicodeString(&name, driverName);
+		status = ObReferenceObjectByName(&name, OBJ_CASE_INSENSITIVE,
 			nullptr, 0, *IoDriverObjectType, KernelMode,
 			nullptr, (PVOID*)&targetDriver);
 
 		if (!NT_SUCCESS(status)) {
-			KdPrint(("Failed to obtain driver reference from name.\n"));
+			KdPrint(("Failed to obtain driver reference from name : %ws.\n", driverName));
 			break;
 		}
 
@@ -108,17 +111,27 @@ NTSTATUS IrpProxyDeviceControl(PDEVICE_OBJECT DeviceObject, PIRP Irp) {
 
 		}
 
-		ObDereferenceObject(targetDriver);
 
 		break;
 	}
 
 	case IOCTL_UNHOOK_TARGET: {
-		if (targetDriver != nullptr) {
-			KdPrint(("No hooked target to unhook!"));
+		if (targetDriver == nullptr) {
+			KdPrint(("No hooked target to unhook!\n"));
 			status = STATUS_INVALID_PARAMETER;
+			break;
 		}
 		
+		KdPrint(("Attempting to unhook driver.\n"));
+
+		for (int j = 0; j <= IRP_MJ_MAXIMUM_FUNCTION; j++) {
+			savedMajorFunction[j] = (PDRIVER_DISPATCH) InterlockedExchangePointer(
+				(PVOID*)&targetDriver->MajorFunction[j], savedMajorFunction[j]);
+
+		}
+
+		ObDereferenceObject(targetDriver);
+
 		break;
 	}
 	default: {
@@ -137,8 +150,13 @@ NTSTATUS IrpProxyDeviceControl(PDEVICE_OBJECT DeviceObject, PIRP Irp) {
 /* This function will replace the target driver's handlers when hooking */
 NTSTATUS DispatchProxy(PDEVICE_OBJECT DeviceObject, PIRP Irp) {
 
-	UNREFERENCED_PARAMETER(Irp);
-	UNREFERENCED_PARAMETER(DeviceObject);
-	return STATUS_SUCCESS;
+	//auto driver = DeviceObject->DriverObject;
+	auto stack = IoGetCurrentIrpStackLocation(Irp);
+
+	KdPrint(("Intercepted Irp ! \n"));
+
+	auto status = targetDriver->MajorFunction[stack->MajorFunction](DeviceObject, Irp);
+
+	return status;
 }
 
