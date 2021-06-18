@@ -153,7 +153,21 @@ NTSTATUS DispatchProxy(PDEVICE_OBJECT DeviceObject, PIRP Irp) {
 	//auto driver = DeviceObject->DriverObject;
 	auto stack = IoGetCurrentIrpStackLocation(Irp);
 
-	KdPrint(("Intercepted Irp ! \n"));
+	KdPrint(("Intercepted Irp !\n"));
+
+	switch(stack->MajorFunction){
+		case IRP_MJ_CREATE: 
+			KdPrint(("Intercepted IRP_MJ_CREATE!\n"));
+			break;
+		
+		case IRP_MJ_CLOSE: 
+			KdPrint(("Intercepted IRP_MJ_CLOSE!\n"));
+			break;
+
+		case IRP_MJ_DEVICE_CONTROL: 
+			KdPrint(("Intercepted IRP_MJ_DEVICE_CONTROL!\n"));
+			break;
+	}
 
 	auto status = savedMajorFunction[stack->MajorFunction](DeviceObject, Irp);
 
