@@ -155,7 +155,7 @@ NTSTATUS DispatchProxy(PDEVICE_OBJECT DeviceObject, PIRP Irp) {
 
 	KdPrint(("Intercepted Irp ! \n"));
 
-	auto status = targetDriver->MajorFunction[stack->MajorFunction](DeviceObject, Irp);
+	auto status = savedMajorFunction[stack->MajorFunction](DeviceObject, Irp);
 
 	return status;
 }
