@@ -92,23 +92,28 @@ NTSTATUS IrpProxyDeviceControl(PDEVICE_OBJECT DeviceObject, PIRP Irp) {
 			break;
 		}
 
-		KdPrint(("Attempting to hook : %ws\n", driverName));
+		__try {
+			KdPrint(("Attempting to hook : %ws\n", driverName));
 
-		UNICODE_STRING name;
-		RtlInitUnicodeString(&name, driverName);
-		status = ObReferenceObjectByName(&name, OBJ_CASE_INSENSITIVE,
-			nullptr, 0, *IoDriverObjectType, KernelMode,
-			nullptr, (PVOID*)&targetDriver);
+			UNICODE_STRING name;
+			RtlInitUnicodeString(&name, driverName);
+			status = ObReferenceObjectByName(&name, OBJ_CASE_INSENSITIVE,
+				nullptr, 0, *IoDriverObjectType, KernelMode,
+				nullptr, (PVOID*)&targetDriver);
 
-		if (!NT_SUCCESS(status)) {
-			KdPrint(("Failed to obtain driver reference from name : %ws.\n", driverName));
-			break;
+			if (!NT_SUCCESS(status)) {
+				KdPrint(("Failed to obtain driver reference from name : %ws.\n", driverName));
+				break;
+			}
+
+			for (int j = 0; j <= IRP_MJ_MAXIMUM_FUNCTION; j++) {
+				savedMajorFunction[j] = (PDRIVER_DISPATCH)InterlockedExchangePointer(
+					(PVOID*)&targetDriver->MajorFunction[j], DispatchProxy);
+
+			}
 		}
-
-		for (int j = 0; j <= IRP_MJ_MAXIMUM_FUNCTION; j++) {
-			savedMajorFunction[j] = (PDRIVER_DISPATCH) InterlockedExchangePointer(
-				(PVOID*)&targetDriver->MajorFunction[j], DispatchProxy);
-
+		__except (EXCEPTION_EXECUTE_HANDLER) {
+			status = STATUS_ACCESS_VIOLATION;
 		}
 
 
@@ -167,6 +172,9 @@ NTSTATUS DispatchProxy(PDEVICE_OBJECT DeviceObject, PIRP Irp) {
 		case IRP_MJ_DEVICE_CONTROL: 
 			KdPrint(("Intercepted IRP_MJ_DEVICE_CONTROL!\n"));
 			break;
+
+		default: 
+			KdPrint(("Intercepted unknown IRP : %d", stack->MajorFunction));
 	}
 
 	auto status = savedMajorFunction[stack->MajorFunction](DeviceObject, Irp);
