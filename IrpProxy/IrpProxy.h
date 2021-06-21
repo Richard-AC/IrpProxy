@@ -1,6 +1,11 @@
 #pragma once
 #include <ntddk.h>
 #include "IrpHandler.h"
+#include "CyclicBuffer.h"
+#include "SimpleTable.h"
+
+const ULONG DRIVER_TAG = 'YXRP';
+const int MaxDataSize = 1 << 13;
 
 extern "C"
 NTSYSAPI

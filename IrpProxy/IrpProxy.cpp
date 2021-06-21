@@ -1,6 +1,7 @@
 #include "common.h"
 #include "IrpProxy.h"
 
+CyclicBuffer<SpinLock>* DataBuffer;
 PDRIVER_OBJECT targetDriver;
 PDRIVER_DISPATCH savedMajorFunction[IRP_MJ_MAXIMUM_FUNCTION + 1];
 
@@ -183,6 +184,8 @@ NTSTATUS DispatchProxy(PDEVICE_OBJECT DeviceObject, PIRP Irp) {
 		default: 
 			KdPrint(("Intercepted unknown IRP : %d", stack->MajorFunction));
 	}
+
+	HandleIrp(DeviceObject, Irp, stack);
 
 	auto status = savedMajorFunction[stack->MajorFunction](DeviceObject, Irp);
 

@@ -136,11 +136,19 @@
     <FilesToPackage Include="$(TargetPath)" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CyclicBuffer.cpp" />
+    <ClCompile Include="FastMutex.cpp" />
+    <ClCompile Include="IrpHandler.cpp" />
     <ClCompile Include="IrpProxy.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common.h" />
+    <ClInclude Include="CyclicBuffer.h" />
+    <ClInclude Include="FastMutex.h" />
+    <ClInclude Include="IrpHandler.h" />
     <ClInclude Include="IrpProxy.h" />
+    <ClInclude Include="SimpleTable.h" />
+    <ClInclude Include="SpinLock.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

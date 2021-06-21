@@ -1,21 +1,59 @@
-#include <ntddk.h>
 #include "common.h"
 
-typedef struct
-{
-    UINT32 Pid;
-    UINT32 Tid;
-    UINT32 IoctlCode;
-    UINT32 Type;
-    WCHAR DriverName[MAX_PATH];
-    WCHAR DeviceName[MAX_PATH];
-    PVOID InputBuffer;
-    PVOID OutputBuffer;
-    ULONG InputBufferLen;
-    ULONG OutputBufferLen;
-}
-IRP_INFO, *PIRP_INFO;
+#pragma pack(push, 1)
 
-NTSTATUS HandleIrp(PDEVICE_OBJECT DeviceObject, PIRP Irp);
+enum class DataItemType : short {
+    IrpArrived,
+    IrpCompleted,
+};
 
-NTSTATUS GetDataFromIrp(PDEVICE_OBJECT DeviceObject, PIRP Irp, PIO_STACK_LOCATION stack, UCHAR MajorFunction, PVOID buffer, ULONG size, bool output);
+struct CommonInfoHeader {
+    USHORT Size;
+    DataItemType Type;
+    long long Time;
+	ULONG ProcessId;
+	ULONG ThreadId;
+};
+
+struct IrpArrivedInfo : CommonInfoHeader {
+    PVOID DeviceObject;
+    PVOID DriverObject;
+    PVOID Irp;
+    UCHAR MajorFunction;
+    UCHAR MinorFunction;
+    UCHAR Irql;
+    UCHAR _padding;
+    ULONG DataSize;
+    union {
+        struct {
+            ULONG IoControlCode;
+            ULONG InputBufferLength;
+            ULONG OutputBufferLength;
+        } DeviceIoControl;
+        struct {
+            USHORT FileAttributes;
+            USHORT ShareAccess;
+        } Create;
+        struct {
+            ULONG Length;
+            long long Offset;
+        } Read;
+        struct {
+            ULONG Length;
+            long long Offset;
+        } Write;
+    };
+};
+
+struct IrpCompletedInfo : CommonInfoHeader {
+    PVOID Irp;
+    long Status;
+    ULONG_PTR Information;
+	ULONG DataSize;
+};
+
+#pragma pack(pop)
+
+NTSTATUS HandleIrp(PDEVICE_OBJECT DeviceObject, PIRP Irp, PIO_STACK_LOCATION stack);
+
+NTSTATUS GetDataFromIrp(PDEVICE_OBJECT DeviceObject, PIRP Irp, PIO_STACK_LOCATION stack, UCHAR MajorFunction, PVOID buffer, ULONG size, bool output = false);

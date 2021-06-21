@@ -1,5 +1,7 @@
 #include "IrpProxy.h"
 
+extern CyclicBuffer<SpinLock>* DataBuffer;
+
 NTSTATUS GetDataFromIrp(PDEVICE_OBJECT DeviceObject, PIRP Irp, PIO_STACK_LOCATION stack, UCHAR MajorFunction, PVOID buffer, ULONG size, bool output) {
 	__try {
 		switch (MajorFunction) {
@@ -67,8 +69,59 @@ NTSTATUS GetDataFromIrp(PDEVICE_OBJECT DeviceObject, PIRP Irp, PIO_STACK_LOCATIO
 	return STATUS_UNSUCCESSFUL;
 }
 
-NTSTATUS HandleIrp(PDEVICE_OBJECT DeviceObject, PIRP Irp) {
+NTSTATUS HandleIrp(PDEVICE_OBJECT DeviceObject, PIRP Irp, PIO_STACK_LOCATION stack) {
 
-	NTSTATUS status = STATUS_UNSUCCESSFUL; 
+	auto driver = DeviceObject->DriverObject;
+	KdPrint(("Handling IRP : %p for driver: %p\n", Irp, driver));
+
+	IrpArrivedInfo* info = nullptr;
+	info = static_cast<IrpArrivedInfo*>(ExAllocatePoolWithTag(NonPagedPool, MaxDataSize + sizeof(IrpArrivedInfo), DRIVER_TAG));
+			if (info) {
+				info->Type = DataItemType::IrpArrived;
+				KeQuerySystemTime((PLARGE_INTEGER)&info->Time);
+				info->Size = sizeof(IrpArrivedInfo);
+				info->DeviceObject = DeviceObject;
+				info->Irp = Irp;
+				info->DriverObject = driver;
+				info->MajorFunction = stack->MajorFunction;
+				info->MinorFunction = stack->MinorFunction;
+				info->ProcessId = HandleToULong(PsGetCurrentProcessId());
+				info->ThreadId = HandleToULong(PsGetCurrentThreadId());
+				info->Irql = KeGetCurrentIrql();
+				info->DataSize = 0;
+
+				switch (info->MajorFunction) {
+					case IRP_MJ_WRITE:
+						info->Write.Length = stack->Parameters.Write.Length;
+						info->Write.Offset = stack->Parameters.Write.ByteOffset.QuadPart;
+						if (info->Write.Length > 0) {
+							auto dataSize = min(MaxDataSize, info->Write.Length);
+							if (NT_SUCCESS(GetDataFromIrp(DeviceObject, Irp, stack, info->MajorFunction, (PUCHAR)info + sizeof(IrpArrivedInfo), dataSize))) {
+								info->DataSize = dataSize;
+								info->Size += (USHORT)dataSize;
+							}
+						}
+						break;
+
+					case IRP_MJ_DEVICE_CONTROL:
+					case IRP_MJ_INTERNAL_DEVICE_CONTROL:
+						info->DeviceIoControl.IoControlCode = stack->Parameters.DeviceIoControl.IoControlCode;
+						info->DeviceIoControl.InputBufferLength = stack->Parameters.DeviceIoControl.InputBufferLength;
+						info->DeviceIoControl.OutputBufferLength = stack->Parameters.DeviceIoControl.OutputBufferLength;
+						if (info->DeviceIoControl.InputBufferLength > 0) {
+							auto dataSize = min(MaxDataSize, info->DeviceIoControl.InputBufferLength);
+							if (NT_SUCCESS(GetDataFromIrp(DeviceObject, Irp, stack, info->MajorFunction, (PUCHAR)info + sizeof(IrpArrivedInfo), dataSize))) {
+								info->DataSize = dataSize;
+								info->Size += (USHORT)dataSize;
+							}
+
+						}
+						break;
+				}
+
+				DataBuffer->Write(info, info->Size);
+
+			}
+
 	return STATUS_SUCCESS;
 }
