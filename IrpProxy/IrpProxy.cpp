@@ -1,4 +1,3 @@
-#include <ntddk.h>
 #include "common.h"
 #include "IrpProxy.h"
 
@@ -167,6 +166,14 @@ NTSTATUS DispatchProxy(PDEVICE_OBJECT DeviceObject, PIRP Irp) {
 		
 		case IRP_MJ_CLOSE: 
 			KdPrint(("Intercepted IRP_MJ_CLOSE!\n"));
+			break;
+
+		case IRP_MJ_READ:
+			KdPrint(("Intercepted IRP_MJ_READ!\n"));
+			break;
+
+		case IRP_MJ_WRITE:
+			KdPrint(("Intercepted IRP_MJ_WRITE!\n"));
 			break;
 
 		case IRP_MJ_DEVICE_CONTROL: 

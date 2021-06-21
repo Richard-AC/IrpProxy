@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
 			return Error("Failed to open device");
 		}
 		
-		const size_t WCHARBUF = 100;
+		const size_t WCHARBUF = MAX_PATH;
 		wchar_t  driverNameWide[WCHARBUF];
 		MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, argv[2], -1, driverNameWide, WCHARBUF);	
 

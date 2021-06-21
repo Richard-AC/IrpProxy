@@ -1,5 +1,6 @@
 #pragma once
 #include <ntddk.h>
+#include "IrpHandler.h"
 
 extern "C"
 NTSYSAPI
