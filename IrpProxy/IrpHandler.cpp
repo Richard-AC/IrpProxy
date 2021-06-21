@@ -3,6 +3,7 @@
 extern CyclicBuffer<SpinLock>* DataBuffer;
 
 NTSTATUS GetDataFromIrp(PDEVICE_OBJECT DeviceObject, PIRP Irp, PIO_STACK_LOCATION stack, UCHAR MajorFunction, PVOID buffer, ULONG size, bool output) {
+	KdPrint(("Attempting to get data from IRP: %p", Irp));
 	__try {
 		switch (MajorFunction) {
 		case IRP_MJ_WRITE: 
@@ -33,10 +34,18 @@ NTSTATUS GetDataFromIrp(PDEVICE_OBJECT DeviceObject, PIRP Irp, PIO_STACK_LOCATIO
 		case IRP_MJ_INTERNAL_DEVICE_CONTROL:
 			auto controlCode = stack->Parameters.DeviceIoControl.IoControlCode;
 			if (METHOD_FROM_CTL_CODE(controlCode) == METHOD_NEITHER) {
-				if (stack->Parameters.DeviceIoControl.Type3InputBuffer < (PVOID)(1 << 16)) {
-					::memcpy(buffer, stack->Parameters.DeviceIoControl.Type3InputBuffer, size);
+				KdPrint(("IRP: %p Uses method neither", Irp));
+				if (stack->Parameters.DeviceIoControl.Type3InputBuffer) {
+					__try {
+						::memcpy(buffer, stack->Parameters.DeviceIoControl.Type3InputBuffer, size);
+					}
+					__except(EXCEPTION_EXECUTE_HANDLER){
+						KdPrint(("Failed to retreive data from Irp\n"));
+						return STATUS_UNSUCCESSFUL;
+					}
 				}
 				else {
+					KdPrint(("Failed to retreive data from Irp\n"));
 					return STATUS_UNSUCCESSFUL;
 				}
 			}
@@ -114,13 +123,17 @@ NTSTATUS HandleIrp(PDEVICE_OBJECT DeviceObject, PIRP Irp, PIO_STACK_LOCATION sta
 							if (NT_SUCCESS(GetDataFromIrp(DeviceObject, Irp, stack, info->MajorFunction, (PUCHAR)info + sizeof(IrpArrivedInfo), dataSize))) {
 								info->DataSize = dataSize;
 								info->Size += (USHORT)dataSize;
+								KdPrint(("Intercepted data : %s\n", (PUCHAR)info + sizeof(IrpArrivedInfo)));
 							}
 
 						}
 						break;
 				}
 
-				//DataBuffer->Write(info, info->Size);
+				if (!DataBuffer) {
+					KdPrint(("AZERAZERAZERAZER"));
+				}
+				DataBuffer->Write(info, info->Size);
 
 			}
 

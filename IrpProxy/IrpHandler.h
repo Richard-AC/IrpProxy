@@ -1,5 +1,7 @@
 #include "common.h"
 
+void* __cdecl operator new(size_t size, POOL_TYPE type, ULONG tag = 0);
+
 #pragma pack(push, 1)
 
 enum class DataItemType : short {

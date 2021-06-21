@@ -19,10 +19,21 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath) 
 	DriverObject->MajorFunction[IRP_MJ_CLOSE] = IrpProxyCreateClose;
 	DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = IrpProxyDeviceControl;
 
+	DataBuffer = new (NonPagedPool) CyclicBuffer<SpinLock>;
+	if (DataBuffer == nullptr) {
+		return STATUS_INSUFFICIENT_RESOURCES;
+		
+	}
+
+	NTSTATUS status = DataBuffer->Init(1 << 20, NonPagedPool, DRIVER_TAG);
+	if (!NT_SUCCESS(status)) {
+		return status;
+	}
+
 	UNICODE_STRING devName = RTL_CONSTANT_STRING(L"\\Device\\IrpProxy");
 
 	PDEVICE_OBJECT DeviceObject;
-	NTSTATUS status = IoCreateDevice(
+	status = IoCreateDevice(
 		DriverObject,
 		0,
 		&devName,

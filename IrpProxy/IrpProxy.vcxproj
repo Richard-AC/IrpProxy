@@ -140,6 +140,7 @@
     <ClCompile Include="FastMutex.cpp" />
     <ClCompile Include="IrpHandler.cpp" />
     <ClCompile Include="IrpProxy.cpp" />
+    <ClCompile Include="Memory.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common.h" />
