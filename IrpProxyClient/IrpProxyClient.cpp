@@ -1,7 +1,10 @@
 #include <windows.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "..\IrpProxy\common.h"
+
+void DisplayIrps(IrpArrivedInfo* irpArrived);
 
 int Error(const char* message) {
 	printf("%s (error=%d)\n", message, GetLastError());
@@ -57,7 +60,7 @@ int main(int argc, char* argv[]) {
 		BOOL success = DeviceIoControl(
 			hDevice,
 			IOCTL_UNHOOK_TARGET,
-			argv[2], strlen(argv[2]),
+			nullptr, 0,
 			nullptr, 0,
 			&returned, nullptr
 		);
@@ -71,6 +74,54 @@ int main(int argc, char* argv[]) {
 		
 		CloseHandle(hDevice);
 	}
+
+	else if (argc == 2 && strcmp(argv[1], "/getData") == 0) {
+		HANDLE hDevice = CreateFile(L"\\\\.\\IrpProxy", GENERIC_WRITE, 
+			FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr);
+
+		if (hDevice == INVALID_HANDLE_VALUE) {
+			return Error("Failed to open device");
+		}
+
+		UINT32 size = 0x2000;
+		if (size == 0) {
+			printf("Please provide a positif size.");
+			return 1;
+		}
+
+		IrpArrivedInfo *irpArrived = (IrpArrivedInfo*) malloc(size);
+		if (!irpArrived) {
+			printf("malloc failed");
+			return 1;
+		}
+		//IrpArrivedInfo irpArrived;
+		memset(irpArrived, 0, size);
+		
+		DWORD returned; 
+		BOOL success = DeviceIoControl(
+			hDevice,
+			IOCTL_GET_DATA,
+			nullptr, 0,
+			irpArrived, size,
+			&returned, nullptr
+		);
+		if (success) {
+			printf("Retreived data!\n\n");
+
+			if (irpArrived->Size) {
+				DisplayIrps(irpArrived);
+			}
+
+		}
+		else {
+			Error("Failed to get data!\n");
+		}
+
+		free(irpArrived);
+		
+		CloseHandle(hDevice);
+
+	}
 	else {
 		printf("Invalid argument. Available arguments : /hook and /unhook\n");
 		printf("Usage : IrpProxyClient /action <DriverName>\n");
@@ -79,4 +130,20 @@ int main(int argc, char* argv[]) {
 
 
 	return 0;
+}
+
+void DisplayIrps(IrpArrivedInfo* irpArrived) {
+	IrpArrivedInfo* current_irp = irpArrived; 
+
+	while (current_irp->Size) {
+		printf("\n[*] Size : %d\n", current_irp->Size);
+		printf("MajorFunction : %d\n", current_irp->MajorFunction);
+		printf("DataSize: %d\n", current_irp->DataSize);
+
+		if (current_irp->DataSize) {
+			printf("Data : %s\n", (char*)current_irp + sizeof(IrpArrivedInfo));
+		}
+
+		current_irp = (IrpArrivedInfo*) ((UINT64) current_irp + current_irp->Size);
+	}
 }

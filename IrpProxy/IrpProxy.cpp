@@ -1,4 +1,3 @@
-#include "common.h"
 #include "IrpProxy.h"
 
 CyclicBuffer<SpinLock>* DataBuffer;
@@ -75,11 +74,20 @@ NTSTATUS IrpProxyCreateClose(PDEVICE_OBJECT DeviceObject, PIRP Irp) {
 	return STATUS_SUCCESS;
 }
 
+NTSTATUS CompleteRequest(PIRP Irp, NTSTATUS status, ULONG_PTR Information) {
+	Irp->IoStatus.Status = status;
+	Irp->IoStatus.Information = Information;
+	IoCompleteRequest(Irp, IO_NO_INCREMENT);
+	return status;
+}
 
 NTSTATUS IrpProxyDeviceControl(PDEVICE_OBJECT DeviceObject, PIRP Irp) {
 	UNREFERENCED_PARAMETER(DeviceObject);
 	auto stack = IoGetCurrentIrpStackLocation(Irp);
 	auto status = STATUS_SUCCESS;
+	auto inputLen = stack->Parameters.DeviceIoControl.InputBufferLength;
+	auto outputLen = stack->Parameters.DeviceIoControl.OutputBufferLength;
+	ULONG_PTR information = 0;
 
 	switch (stack->Parameters.DeviceIoControl.IoControlCode) {
 	case IOCTL_HOOK_TARGET: {
@@ -91,7 +99,7 @@ NTSTATUS IrpProxyDeviceControl(PDEVICE_OBJECT DeviceObject, PIRP Irp) {
 			status = STATUS_INVALID_PARAMETER;
 			break;
 		}
-		if (stack->Parameters.DeviceIoControl.InputBufferLength <= 0) {
+		if (inputLen <= 0) {
 			status = STATUS_BUFFER_TOO_SMALL;
 			break;
 		}
@@ -150,15 +158,28 @@ NTSTATUS IrpProxyDeviceControl(PDEVICE_OBJECT DeviceObject, PIRP Irp) {
 
 		break;
 	}
+
+	case IOCTL_GET_DATA: {
+		if (outputLen < sizeof(CommonInfoHeader)) {
+			status = STATUS_BUFFER_TOO_SMALL;
+			break;
+		}
+		auto buffer = static_cast<PUCHAR>(MmGetSystemAddressForMdlSafe(Irp->MdlAddress, NormalPagePriority));
+		if (buffer == nullptr) {
+			status = STATUS_INSUFFICIENT_RESOURCES;
+			break;
+		}
+		information = DataBuffer->Read(buffer, outputLen);
+		break;
+		}
 	default: {
 		status = STATUS_INVALID_DEVICE_REQUEST;
 		break;
 	}
 	}
 
-	Irp->IoStatus.Status = status;
-	Irp->IoStatus.Information = 0;
-	IoCompleteRequest(Irp, IO_NO_INCREMENT);
+
+	CompleteRequest(Irp, status, information);
 
 	return status;
 }

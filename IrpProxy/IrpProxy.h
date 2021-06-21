@@ -3,6 +3,7 @@
 #include "IrpHandler.h"
 #include "CyclicBuffer.h"
 #include "SimpleTable.h"
+#include "common.h"
 
 const ULONG DRIVER_TAG = 'YXRP';
 const int MaxDataSize = 1 << 13;
