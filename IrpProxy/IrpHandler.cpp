@@ -94,6 +94,7 @@ NTSTATUS HandleIrp(PDEVICE_OBJECT DeviceObject, PIRP Irp, PIO_STACK_LOCATION sta
 					case IRP_MJ_WRITE:
 						info->Write.Length = stack->Parameters.Write.Length;
 						info->Write.Offset = stack->Parameters.Write.ByteOffset.QuadPart;
+						
 						if (info->Write.Length > 0) {
 							auto dataSize = min(MaxDataSize, info->Write.Length);
 							if (NT_SUCCESS(GetDataFromIrp(DeviceObject, Irp, stack, info->MajorFunction, (PUCHAR)info + sizeof(IrpArrivedInfo), dataSize))) {
@@ -119,7 +120,7 @@ NTSTATUS HandleIrp(PDEVICE_OBJECT DeviceObject, PIRP Irp, PIO_STACK_LOCATION sta
 						break;
 				}
 
-				DataBuffer->Write(info, info->Size);
+				//DataBuffer->Write(info, info->Size);
 
 			}
 

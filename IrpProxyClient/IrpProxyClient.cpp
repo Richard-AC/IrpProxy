@@ -36,10 +36,10 @@ int main(int argc, char* argv[]) {
 		);
 
 		if (success) {
-			printf("Echo succeeded!\n");
+			printf("Hooking succeeded!\n");
 		}
 		else {
-			Error("Echo failed!\n");
+			Error("Hooking failed!\n");
 		}
 		
 		CloseHandle(hDevice);
@@ -63,10 +63,10 @@ int main(int argc, char* argv[]) {
 		);
 
 		if (success) {
-			printf("Echo succeeded!\n");
+			printf("Unhooking succeeded!\n");
 		}
 		else {
-			Error("Echo failed!\n");
+			Error("Unhooking failed!\n");
 		}
 		
 		CloseHandle(hDevice);
