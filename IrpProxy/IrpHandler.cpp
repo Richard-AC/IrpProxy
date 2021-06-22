@@ -131,7 +131,8 @@ NTSTATUS HandleIrp(PDEVICE_OBJECT DeviceObject, PIRP Irp, PIO_STACK_LOCATION sta
 				}
 
 				if (!DataBuffer) {
-					KdPrint(("AZERAZERAZERAZER"));
+					KdPrint(("Cyclic buffer not found\n"));
+					return STATUS_UNSUCCESSFUL;
 				}
 				DataBuffer->Write(info, info->Size);
 
