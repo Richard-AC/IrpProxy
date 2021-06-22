@@ -54,6 +54,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	IrpArrivedInfo* current_irp = (IrpArrivedInfo*) malloc(0x1000);
+	IrpArrivedInfo* saved_irps = (IrpArrivedInfo*) malloc(0x1000);
 	if (current_irp == nullptr) {
 
 		return Error("Failed to allocate buffer.\n");
@@ -61,41 +62,51 @@ int main(int argc, char* argv[]) {
 		CloseHandle(hDevice);
 	}
 
-	do {
-		bErrorFlag = ReadFile(hFile,
-			current_irp,
-			0x1000,
-			&dwBytesRead,
-			NULL
-		);
+	memset(current_irp, 0, 0x1000);
+	memset(saved_irps, 0, 0x1000);
+	bErrorFlag = ReadFile(hFile,
+		current_irp,
+		0x1000,
+		&dwBytesRead,
+		NULL
+	);
 
-		if (!bErrorFlag) {
-			CloseHandle(hFile);
-			CloseHandle(hDevice);
-			return Error("Failed to read from file.\n");
-		}
+	if (!bErrorFlag) {
+		CloseHandle(hFile);
+		CloseHandle(hDevice);
+		return Error("Failed to read from file.\n");
+	}
 
-		for (int j = 0; j < 0x1000; j++) {
+	memcpy(saved_irps, current_irp, 0x1000);
+
+	while (true) {
+		__try {
+			printf("bla\n");
+			memcpy(current_irp, saved_irps, 0x1000);
+
 			/* Mutate current_irp here */
-			int selected_bytes[0x5];
-			for (int i = 0; i < 0x5; i++) {
+			int selected_bytes[0xa];
+			for (int i = 0; i < 0xa; i++) {
 				selected_bytes[i] = rand() % 0x1000;
 			}
 
-			for (int i = 0; i < 0x5; i++) {
+			for (int i = 0; i < 0xa; i++) {
 				*((char*)current_irp + selected_bytes[i]) = rand() % 0xff;
+				//printf("Index : %d is now %d", selected_bytes[i], *(char*)current_irp + selected_bytes[i]);
 			}
 
 			/***/
 
 			ReplayIrps(current_irp, hDevice);
 		}
-	} while (dwBytesRead != 0);
-
+		__except(EXCEPTION_EXECUTE_HANDLER){
+			printf("walafzef\n");
+		}
+	}
 	CloseHandle(hFile);
 	CloseHandle(hDevice);
 
-
+	printf("WTF\n");
 
 	return 0;
 }

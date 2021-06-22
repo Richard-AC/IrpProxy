@@ -154,7 +154,11 @@ void DisplayIrps(IrpArrivedInfo* irpArrived) {
 		printf("DataSize: %d\n", current_irp->DataSize);
 
 		if (current_irp->DataSize) {
-			printf("Data : %s\n", (char*)current_irp + sizeof(IrpArrivedInfo));
+			printf("Data:\n");
+			for (int i = 0; i < current_irp->DataSize; i++) {
+				printf("%02x", *((char*)current_irp + sizeof(IrpArrivedInfo) + i));
+			}
+			printf("\n");
 		}
 
 		bErrorFlag = WriteFile( 
