@@ -4,6 +4,8 @@
 #include <string.h>
 #include "..\IrpProxy\common.h"
 
+#define FILENAME "recorded_irps.dat"
+
 void DisplayIrps(IrpArrivedInfo* irpArrived);
 
 int Error(const char* message) {
@@ -133,7 +135,18 @@ int main(int argc, char* argv[]) {
 }
 
 void DisplayIrps(IrpArrivedInfo* irpArrived) {
+	HANDLE hFile;
+	bool bErrorFlag = false;
+	DWORD dwBytesWritten = 0;
 	IrpArrivedInfo* current_irp = irpArrived; 
+
+	hFile = CreateFileA(FILENAME, 
+				   FILE_APPEND_DATA,   
+				   0,               
+				   NULL,           
+				   OPEN_ALWAYS,
+				   FILE_ATTRIBUTE_NORMAL,
+				   NULL);               
 
 	while (current_irp->Size) {
 		printf("\n[*] Size : %d\n", current_irp->Size);
@@ -144,6 +157,19 @@ void DisplayIrps(IrpArrivedInfo* irpArrived) {
 			printf("Data : %s\n", (char*)current_irp + sizeof(IrpArrivedInfo));
 		}
 
+		bErrorFlag = WriteFile( 
+				hFile,           
+				current_irp,     
+				current_irp->Size,
+				&dwBytesWritten,
+				NULL);        
+
+		if (dwBytesWritten != current_irp->Size) {
+			Error("Error while writing to file\n");
+		}
+
 		current_irp = (IrpArrivedInfo*) ((UINT64) current_irp + current_irp->Size);
 	}
+
+	CloseHandle(hFile);
 }
