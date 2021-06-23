@@ -86,10 +86,6 @@ int main(int argc, char* argv[]) {
 		}
 
 		UINT32 size = 0x2000;
-		if (size == 0) {
-			printf("Please provide a positif size.");
-			return 1;
-		}
 
 		IrpArrivedInfo *irpArrived = (IrpArrivedInfo*) malloc(size);
 		if (!irpArrived) {
