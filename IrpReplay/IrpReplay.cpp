@@ -124,6 +124,7 @@ int main(int argc, char* argv[]) {
 		}
 		__except (EXCEPTION_EXECUTE_HANDLER) {
 			printf("bruh...\n");
+			continue;
 		}
 
 	}
