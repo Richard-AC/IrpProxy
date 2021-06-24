@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "..\IrpProxy\common.h"
+#include "Mutator.h"
 
 #define IRP_MJ_CREATE 0x00
 #define IRP_MJ_CLOSE 0x02
@@ -10,6 +11,8 @@
 #define IRP_MJ_WRITE                    0x04
 #define IRP_MJ_DEVICE_CONTROL           0x0e
 #define IRP_MJ_INTERNAL_DEVICE_CONTROL  0x0f
+
+UINT32 counter;
 
 void ReplayIrps(IrpArrivedInfo*, HANDLE);
 
@@ -53,20 +56,20 @@ int main(int argc, char* argv[]) {
 		return Error("Failed to open file");
 	}
 
-	IrpArrivedInfo* current_irp = (IrpArrivedInfo*) malloc(0x1000);
-	IrpArrivedInfo* saved_irps = (IrpArrivedInfo*) malloc(0x1000);
-	if (current_irp == nullptr) {
+	const char input_path_format[] = "in\\input_%d";
+	char input_path[100] = "";
 
-		return Error("Failed to allocate buffer.\n");
+	IrpArrivedInfo* current_irps = (IrpArrivedInfo*) malloc(0x10000);
+	if (current_irps == nullptr) {
 		CloseHandle(hFile);
 		CloseHandle(hDevice);
+		return Error("Failed to allocate buffer.\n");
 	}
 
-	memset(current_irp, 0, 0x1000);
-	memset(saved_irps, 0, 0x1000);
+	memset(current_irps, 0, 0x10000);
 	bErrorFlag = ReadFile(hFile,
-		current_irp,
-		0x1000,
+		current_irps,
+		0x10000,
 		&dwBytesRead,
 		NULL
 	);
@@ -77,36 +80,58 @@ int main(int argc, char* argv[]) {
 		return Error("Failed to read from file.\n");
 	}
 
-	memcpy(saved_irps, current_irp, 0x1000);
-
-	while (true) {
-		__try {
-			printf("bla\n");
-			memcpy(current_irp, saved_irps, 0x1000);
-
-			/* Mutate current_irp here */
-			int selected_bytes[0xa];
-			for (int i = 0; i < 0xa; i++) {
-				selected_bytes[i] = rand() % 0x1000;
-			}
-
-			for (int i = 0; i < 0xa; i++) {
-				*((char*)current_irp + selected_bytes[i]) = rand() % 0xff;
-				//printf("Index : %d is now %d", selected_bytes[i], *(char*)current_irp + selected_bytes[i]);
-			}
-
-			/***/
-
-			ReplayIrps(current_irp, hDevice);
-		}
-		__except(EXCEPTION_EXECUTE_HANDLER){
-			printf("walafzef\n");
-		}
-	}
+	ReplayIrps(current_irps, hDevice);
 	CloseHandle(hFile);
-	CloseHandle(hDevice);
+	
+	// We start fuzzing here 
+	while (true) {
+		printf("counter : %d\n", counter);
+		__try {
+			counter++;
+			memset(current_irps, 0, 0x10000);
+			mutate();
+			for (int i = 1; i <= 100; i++) {
+				sprintf_s(input_path, 100, input_path_format, i);
 
-	printf("WTF\n");
+				hFile = CreateFileA(input_path,
+					GENERIC_READ,
+					0,
+					NULL,
+					OPEN_EXISTING,
+					FILE_ATTRIBUTE_NORMAL,
+					NULL);
+				if (hFile == INVALID_HANDLE_VALUE) {
+					CloseHandle(hDevice);
+					return Error("Failed to open file");
+				}
+
+				bErrorFlag = ReadFile(hFile,
+					current_irps,
+					0x10000,
+					&dwBytesRead,
+					NULL
+				);
+
+				if (!bErrorFlag) {
+					CloseHandle(hFile);
+					CloseHandle(hDevice);
+					return Error("Failed to read from file.\n");
+				}
+
+				ReplayIrps(current_irps, hDevice);
+				CloseHandle(hFile);
+			}
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER) {
+			printf("bruh...\n");
+		}
+
+	}
+
+	/////////////////////////
+
+
+	CloseHandle(hDevice);
 
 	return 0;
 }

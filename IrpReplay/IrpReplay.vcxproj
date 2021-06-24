@@ -141,6 +141,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="IrpReplay.cpp" />
+    <ClCompile Include="Mutator.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Mutator.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
