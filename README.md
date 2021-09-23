@@ -18,7 +18,7 @@ sc create IrpProxy type= kernel binPath= c:\path\to\IrpProxy.sys
 
 2. Hook the target driver's dispatch routines: 
 
-IrpProxyClient.exe /hook <Target Device Name>
+IrpProxyClient.exe /hook \<Target Device Name\>
 
 3. Write the recorded IRPs to a file:
 
@@ -26,4 +26,4 @@ IrpProxyClient.exe /getData
 
 4. Mutate and replay the recorded IRPs:
 
-IrpReplay.exe <FileName.dat> <Target Device Name>
+IrpReplay.exe \<FileName.dat\> \<Target Device Name\>
